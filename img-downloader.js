@@ -4,24 +4,22 @@
 module.exports = (function () {
   'Use strict'
 
-  const fs = require('fs')
   const readline = require('readline')
-  const request = require('request')
   const url = require('url')
   const path = require('path')
   const http = require('http')
+  const Promise = require('bluebird')
+  const fs = Promise.promisifyAll(require('fs-extra'))
+  const request = Promise.promisifyAll(require('request'))
 
-  function deleteImages (dir) {
+  function deleteImagesDirectory (dir) {
     return new Promise((resolve, reject) => {
-      // fs.emptyDir(directory, (err) => {
-      //   if (err) {
-      //     reject(err)
-      //   }
-      //
-      //   resolve()
-      //
-      // })
-      resolve(dir)
+      fs.emptyDir(dir, (err) => {
+        if (err)
+          reject(err)
+        else
+          resolve(`${dir} is now empty`)
+      })
     })
   }
 
@@ -30,30 +28,26 @@ module.exports = (function () {
       input: fs.createReadStream(origin)
     })
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       let images = []
-
       lineReader.on('line', (line) => images.push(line))
-
+      lineReader.on('error', () => reject(new Error('Error while reading the file')))
       lineReader.on('close', () => resolve(images))
     })
   }
 
-  function download (url, dest, callback) {
-    let filename = extractFileNameFromUrl(url)
-    request.head(url, (err, res, body) => {
-      request(url)
-        .pipe(
-          fs.createWriteStream(path.join(dest, filename))
-        )
-        .on('close', callback)
+  function download (url, dest) {
+    return new Promise((resolve, reject) => {
+      let filename = extractFileNameFromUrl(url)
 
-      // if (res.statusCode < 200 ||res.statusCode > 299)
-      //   reject(new Error('Failed to load image, status code: ' + res.statusCode))
+      request.head(url, (err, response, body) => {
+        request(url).pipe(fs.createWriteStream(path.join(dest, filename)))
 
-      // res.on('end', function () {
-      //   resolve(image)
-      // })
+        if (response.statusCode < 200 || response.statusCode > 299)
+          reject(new Error(`Failed to load image, status code: ${response.statusCode}`))
+        else
+          resolve(`Done downloading ${filename}`)
+      })
     })
   }
 
@@ -64,17 +58,25 @@ module.exports = (function () {
 
   function init (origin, dest) {
     // First we delete the image directory
-    deleteImages(dest)
+    deleteImagesDirectory(dest)
     .then((result) => {
       console.log(result)
+    }).catch((error) => {
+      console.log(error)
     })
     // Then we get the images
     .then((result) => {
       return getImages(origin)
+    }).catch((error) => {
+      console.log(error)
     })
     // Then we proceed to download them one by one
-    .then(function (result) {
-      result.forEach((imgUrl) => download(imgUrl, dest, () => console.log('done')))
+    .then((result) => {
+      result.forEach((imgUrl) => download(imgUrl, dest))
+    }).catch((error) => {
+      console.log(error)
+    }).then((result) => {
+      console.log(`Download finished`)
     })
   }
 
