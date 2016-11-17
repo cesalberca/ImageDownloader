@@ -1,7 +1,7 @@
 /**
  * Created by Cesar on 15/11/2016.
  */
-module.exports = (function () {
+module.exports = (() => {
   'Use strict'
 
   const readline = require('readline')
@@ -9,8 +9,8 @@ module.exports = (function () {
   const path = require('path')
   const http = require('http')
   const Promise = require('bluebird')
-  const fs = Promise.promisifyAll(require('fs-extra'))
-  const request = Promise.promisifyAll(require('request'))
+  const fs = require('fs-extra')
+  const request = require('request')
 
   function deleteImagesDirectory (dir) {
     return new Promise((resolve, reject) => {
@@ -36,18 +36,18 @@ module.exports = (function () {
     })
   }
 
-  function download (url, dest) {
-    return new Promise((resolve, reject) => {
-      let filename = extractFileNameFromUrl(url)
-
-      request.head(url, (err, response, body) => {
-        request(url).pipe(fs.createWriteStream(path.join(dest, filename)))
-
-        if (response.statusCode < 200 || response.statusCode > 299)
-          reject(new Error(`Failed to load image, status code: ${response.statusCode}`))
-        else
-          resolve(`Done downloading ${filename}`)
+  function download (images, dest) {
+    Promise.each(images, image => new Promise((resolve, reject) => {
+      let filename = extractFileNameFromUrl(image)
+      console.log('Downloading Image: ' + filename)
+      request(image).on('error', reject).pipe(fs.createWriteStream(path.join(dest, filename))).on('finish', () => {
+          console.log('Downloaded Image: ' + filename)
+          resolve()
       })
+    })).then(() => {
+        console.log('All images Downloaded!')
+    }).catch(err => {
+        console.error('Failed: ' + err.message)
     })
   }
 
@@ -61,22 +61,23 @@ module.exports = (function () {
     deleteImagesDirectory(dest)
     .then((result) => {
       console.log(result)
-    }).catch((error) => {
+    })
+    .catch((error) => {
       console.log(error)
     })
     // Then we get the images
-    .then((result) => {
+    .then(() => {
       return getImages(origin)
-    }).catch((error) => {
+    })
+    .catch((error) => {
       console.log(error)
     })
     // Then we proceed to download them one by one
-    .then((result) => {
-      result.forEach((imgUrl) => download(imgUrl, dest))
-    }).catch((error) => {
-      console.log(error)
-    }).then((result) => {
-      console.log(`Download finished`)
+    .then((images) => {
+      download(images, dest)
+    })
+    .catch((err) => {
+      console.log(err)
     })
   }
 
@@ -84,3 +85,27 @@ module.exports = (function () {
     init: init
   }
 })()
+
+
+// Promise.each(images, image => new Promise((resolve, reject) => {
+//   download(image, dest)
+// }))
+// .then(() => {
+//   console.log(`All images downloaded`)
+// })
+// .catch((error) => {
+//   console.log(error)
+// })
+
+// Promise.each(images, image => new Promise((resolve, reject) => {
+//     let filename = extractFileNameFromUrl(image)
+//     console.log('Downloading Image: ' + filename);
+//     request(image).on('error', reject).pipe(fs.createWriteStream(path.join(dest, filename))).on('finish', () => {
+//         console.log('Downloaded Image: ' + filename);
+//         resolve();
+//     });
+// })).then(() => {
+//     console.log('All Image Downloaded!');
+// }).catch(err => {
+//     console.error('Failed: ' + err.message);
+// });
