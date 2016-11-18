@@ -2,12 +2,16 @@
   "name": "img-downloader",
   "version": "1.0.0",
   "description": "Downloads images given in a txt file",
+  "author": "César Alberca Agelan cesalberca@gmail.com",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
   },
-  "author": "@cesalberca",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cesalberca/ImageDownloader"
+  },
   "license": "MIT",
   "dependencies": {
     "bluebird": "^3.4.6",
