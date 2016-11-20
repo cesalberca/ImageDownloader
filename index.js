@@ -1,8 +1,6 @@
-/**
- * Created by Cesar on 15/11/2016.
- */
+'Use strict'
+
 module.exports = (() => {
-  'Use strict'
 
   const readline = require('readline')
   const url = require('url')
@@ -12,6 +10,13 @@ module.exports = (() => {
   const fs = require('fs-extra')
   const request = require('request')
 
+/**
+ * 
+ * Emtpies the given directory. If it doesn't exists it creates an empty one.
+ * @param {any} dir The path to the given directory
+ * @returns
+
+ */
   function deleteImagesDirectory (dir) {
     return new Promise((resolve, reject) => {
       fs.emptyDir(dir, (err) => {
@@ -23,6 +28,12 @@ module.exports = (() => {
     })
   }
 
+  /**
+   * 
+   * Return an array of urls retrieved from an input file
+   * @param {any} origin The path to the input file
+   * @returns
+   */
   function getImages (origin) {
     const lineReader = readline.createInterface({
       input: fs.createReadStream(origin)
@@ -36,6 +47,12 @@ module.exports = (() => {
     })
   }
 
+  /**
+   * 
+   * Downloads to a destination all the ulrs given in an array
+   * @param {any} images
+   * @param {any} dest
+   */
   function download (images, dest) {
     Promise.each(images, image => new Promise((resolve, reject) => {
       let filename = extractFileNameFromUrl(image)
@@ -51,6 +68,12 @@ module.exports = (() => {
     })
   }
 
+  /**
+   * Given an url, get the name of the file 
+   * 
+   * @param {any} imgUrl
+   * @returns
+   */
   function extractFileNameFromUrl (imgUrl) {
     let parsedUrl = url.parse(imgUrl)
     return path.basename(parsedUrl.pathname)
